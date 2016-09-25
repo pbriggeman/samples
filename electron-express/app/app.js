@@ -4,11 +4,26 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var bunyan = require('bunyan');
+var log = bunyan.createLogger({name: 'electron'});
+var fs = require("fs");
 
 var routes = require('./routes/index');
 var users = require('./routes/users');
+var db_error = require('./routes/db_error');
 
 var app = express();
+
+// let's fix the directory location to application root
+var rArr = __dirname.split("/");
+var tmp = rArr.slice(0,6);
+var __dirRoot = tmp.join("/");
+
+// ensure database exists
+var file = __dirRoot + "/data/test.db";
+var exists = fs.existsSync(file);
+var sqlite3 = require("sqlite3").verbose();
+var db = new sqlite3.Database(file);
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -24,7 +39,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
 app.use('/users', users);
-app.use('/scripts', express.static(__dirname + '/node_modules/'));
+app.use('/db_error', db_error);
+app.use('/scripts', express.static(__dirRoot + '/electron-express/node_modules/'));
+
+app.get('/', function(req, res){
+    if (!(exists)) {
+        res.redirect('/db_error');
+    }
+    else {
+        res.redirect('/');
+    }
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -34,6 +59,9 @@ app.use(function(req, res, next) {
 });
 
 // error handlers
+
+// db error handler
+
 
 // development error handler
 // will print stacktrace
